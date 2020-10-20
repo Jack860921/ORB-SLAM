@@ -1,4 +1,4 @@
-#!/usr/bin/env python3
+#!/usr/bin/env python
 import rospy
 import math
 from geometry_msgs.msg import PoseStamped
@@ -13,13 +13,16 @@ rho = 10.0
 Ang_Dif = 10.0
 # parameters
 goal_x = [1.5, 0.0, 0.0, 0.0]
-goal_y = [0.0, 0.0, 1.0, 0.0]
+goal_y = [0.0, 0.0, 0.0, 0.0]
 goal_theta = [0, 180, 0, -180]
-k_rho = 0.3
-k_alpha = 1
+k_rho = 0.1
+k_alpha = 0.8
 k_beta = -0.3
 Dist_tolerance = 0.1
 Ang_tolerance = 1.0
+
+
+# def Shortest_Ang():
 
 def Pose_callback(Odometry):
     global x
@@ -41,18 +44,35 @@ def control_command(point_index):
     Ang_Dif = goal_theta[point_index] - theta
     global rho
     rho = math.sqrt(delta_x**2 + delta_y**2)
-    alpha = -theta + math.atan2(delta_y, delta_x)*180/math.pi
+    goal_angle = math.atan2(delta_y, delta_x)*180/math.pi
+    alpha = -theta + goal_angle
+    if abs(alpha) > abs(alpha + 360):
+        alpha = alpha + 360
+    elif abs(alpha - 360) < abs(alpha):
+        alpha = alpha - 360
+    else:
+        pass
+    print("goal_angle", goal_angle)
+    print("theta", theta)
+    print("alpha", alpha)
     beta = goal_theta[point_index] -theta - alpha
     # beta = -theta - alpha
-    print("alpha:",alpha)
-    print("atan2(delta_y, delta_x)", math.atan2(delta_y, delta_x)*180/math.pi)
+    # print("alpha:",alpha)
+    # print("atan2(delta_y, delta_x)", math.atan2(delta_y, delta_x)*180/math.pi)
+    Alpha = alpha
     alpha = alpha * math.pi/180
     beta = beta * math.pi/180
-    print("Alpha:",alpha)
+    # print("Alpha:",alpha)
+
     vel = Twist()
-    vel.linear.x = k_rho * rho
-    # vel.angular.z = k_alpha * alpha + k_beta * beta
-    vel.angular.z = k_alpha * alpha
+    if abs(Alpha) >= 80:
+        print("Phase 1")
+        vel.angular.z = k_alpha * alpha
+    else:
+        print("Phase 2")
+        vel.linear.x = k_rho * rho
+        vel.angular.z = k_alpha * alpha
+        # vel.angular.z = k_alpha * alpha + k_beta * beta
     # print("rho: ", rho)
     # print("Angle Dif: ", Ang_Dif)
     # print("Vel", vel.linear.x)
@@ -73,12 +93,13 @@ def start():
         if goal_flag == 1:
             rospy.loginfo("Reached Goal!!!")
         # elif rho <= Dist_tolerance and Ang_Dif <= Ang_tolerance:
-        elif rho <= Dist_tolerance:
+        elif rho <= Dist_tolerance and goal_flag == 0:
             point_index += 1
-            control_command(point_index)
-            print("Reach Goal!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!", point_index)
             if point_index == 4:
                 goal_flag = 1
+                continue
+            control_command(point_index)
+            print("Reach Goal!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!", point_index)
         else:
             control_command(point_index)
         rate.sleep()
