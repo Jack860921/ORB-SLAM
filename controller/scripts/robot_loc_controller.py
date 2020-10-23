@@ -12,15 +12,26 @@ yaw_angle = 0.0
 rho = 10.0
 Ang_Dif = 10.0
 # parameters
-goal_x = [1.5, 0.0, 0.0, 0.0]
-goal_y = [0.0, 0.0, 0.0, 0.0]
+# goal_x = [1.0, 0.0, 1.0, 0.0]
+# goal_y = [0.0, 1.0, 0.0, 1.0]
+goal_x = [0.5, 3.5, 3.5, 0.5]
+goal_x = goal_x + goal_x + goal_x
+goal_x.append(0.5)
+goal_y = [-1.0, -1.0, 2.0, 2.0]
+goal_y = goal_y + goal_y + goal_y
+goal_y.append(-1.0)
 goal_theta = [0, 180, 0, -180]
-k_rho = 0.1
-k_alpha = 0.8
+k_rho = 0.2
+k_alpha = 1.5 #1.0
 k_beta = -0.3
-Dist_tolerance = 0.1
+Dist_tolerance = 0.05
 Ang_tolerance = 1.0
 
+Stop = Twist()
+Stop.linear.x = 0
+Stop.angular.z = 0
+VelLimit = 0.2
+phase_flag = 0
 
 # def Shortest_Ang():
 
@@ -36,50 +47,61 @@ def imu_callback(orientation):
     yaw_angle = orientation.pose.position.z
     # print(yaw_angle)
 
+def vel_limit(vel_x):
+    if vel_x > VelLimit:
+        # print("Limited")
+        return VelLimit
+    else:
+        return vel_x
+
 def control_command(point_index):
     delta_x = (goal_x[point_index] - x)
     delta_y = (goal_y[point_index] - y)
     theta = yaw_angle
     global Ang_Dif
-    Ang_Dif = goal_theta[point_index] - theta
+    # Ang_Dif = goal_theta[point_index] - theta
     global rho
     rho = math.sqrt(delta_x**2 + delta_y**2)
     goal_angle = math.atan2(delta_y, delta_x)*180/math.pi
     alpha = -theta + goal_angle
+    # beta = goal_theta[point_index] -theta - alpha
     if abs(alpha) > abs(alpha + 360):
         alpha = alpha + 360
     elif abs(alpha - 360) < abs(alpha):
         alpha = alpha - 360
     else:
         pass
-    print("goal_angle", goal_angle)
+    # print("X: %f, Y: %f, Yaw: %f" %(x, y, theta))
+
+    print("atan2(delta_y, delta_x)", math.atan2(delta_y, delta_x)*180/math.pi)
     print("theta", theta)
     print("alpha", alpha)
-    beta = goal_theta[point_index] -theta - alpha
-    # beta = -theta - alpha
-    # print("alpha:",alpha)
-    # print("atan2(delta_y, delta_x)", math.atan2(delta_y, delta_x)*180/math.pi)
     Alpha = alpha
     alpha = alpha * math.pi/180
-    beta = beta * math.pi/180
-    # print("Alpha:",alpha)
-
+    # beta = beta * math.pi/180
+    global phase_flag
     vel = Twist()
-    if abs(Alpha) >= 80:
-        print("Phase 1")
-        vel.angular.z = k_alpha * alpha
-    else:
-        print("Phase 2")
-        vel.linear.x = k_rho * rho
-        vel.angular.z = k_alpha * alpha
-        # vel.angular.z = k_alpha * alpha + k_beta * beta
-    # print("rho: ", rho)
-    # print("Angle Dif: ", Ang_Dif)
-    # print("Vel", vel.linear.x)
-    # print("AngVel: ", vel.angular.z)
-    # print("Now is at X: %f, Y: %f, Theta: %f" %(x, y, yaw_angle))
+    # if abs(Alpha) >= 2 and phase_flag == 0:
+    #     print("Phase 0")
+    #     vel.linear.x = 0
+    #     vel.angular.z = k_alpha * alpha
+    # else:
+    #     print("Phase 1")
+    #     phase_flag = 1
+    vel_x = math.cos(alpha) * k_rho * rho
+    vel.linear.x = vel_limit(vel_x)
+    print("vel.linear.x", vel.linear.x)
+    vel.angular.z = k_alpha * alpha
+
+
     global pub
     pub.publish(vel)
+
+def ReachedGoal():
+    rospy.loginfo("Reached Goal!!!")
+    global pub
+    pub.publish(Stop)
+
 
 def start():
     rospy.Subscriber("/odom_filtered_map", Odometry, Pose_callback)
@@ -89,17 +111,21 @@ def start():
     rate = rospy.Rate(100) # 10hz
     point_index = 0
     goal_flag = 0
+    global phase_flag
     while not rospy.is_shutdown():
+        # print(goal_x)
         if goal_flag == 1:
-            rospy.loginfo("Reached Goal!!!")
+            ReachedGoal()
+            break
+            # rospy.signal_shutdown("Reached Goal!!!")
         # elif rho <= Dist_tolerance and Ang_Dif <= Ang_tolerance:
         elif rho <= Dist_tolerance and goal_flag == 0:
             point_index += 1
-            if point_index == 4:
+            phase_flag = 0
+            if point_index == len(goal_x):
                 goal_flag = 1
                 continue
             control_command(point_index)
-            print("Reach Goal!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!", point_index)
         else:
             control_command(point_index)
         rate.sleep()
