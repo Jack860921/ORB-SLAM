@@ -32,14 +32,24 @@ Stop.linear.x = 0
 Stop.angular.z = 0
 VelLimit = 0.2
 phase_flag = 0
-
-# def Shortest_Ang():
+x_0 = 0
+y_0 = 0
+first_flag = 0
 
 def Pose_callback(Odometry):
     global x
     global y
-    x = Odometry.pose.pose.position.x
-    y = Odometry.pose.pose.position.y
+    global first_flag
+    global x_0, y_0
+    # global 
+
+    if first_flag == 0:
+        x_0 = Odometry.pose.pose.position.x
+        y_0 = Odometry.pose.pose.position.y
+        first_flag = 1
+
+    x = Odometry.pose.pose.position.x - x_0
+    y = Odometry.pose.pose.position.y - y_0
     # print("Now is at: ", x, y)
 
 def imu_callback(orientation):
@@ -71,11 +81,11 @@ def control_command(point_index):
         alpha = alpha - 360
     else:
         pass
-    # print("X: %f, Y: %f, Yaw: %f" %(x, y, theta))
+    print("X: %f, Y: %f, Yaw: %f" %(x, y, theta))
 
-    print("atan2(delta_y, delta_x)", math.atan2(delta_y, delta_x)*180/math.pi)
-    print("theta", theta)
-    print("alpha", alpha)
+    # print("atan2(delta_y, delta_x)", math.atan2(delta_y, delta_x)*180/math.pi)
+    # print("theta", theta)
+    # print("alpha", alpha)
     Alpha = alpha
     alpha = alpha * math.pi/180
     # beta = beta * math.pi/180
@@ -90,7 +100,7 @@ def control_command(point_index):
     #     phase_flag = 1
     vel_x = math.cos(alpha) * k_rho * rho
     vel.linear.x = vel_limit(vel_x)
-    print("vel.linear.x", vel.linear.x)
+    # print("vel.linear.x", vel.linear.x)
     vel.angular.z = k_alpha * alpha
 
 
@@ -104,8 +114,8 @@ def ReachedGoal():
 
 
 def start():
-    rospy.Subscriber("/odom_filtered_map", Odometry, Pose_callback)
-    rospy.Subscriber("/yaw_filtered_map", PoseStamped, imu_callback)
+    rospy.Subscriber("/odom", Odometry, Pose_callback)
+    rospy.Subscriber("/yaw_odom", PoseStamped, imu_callback)
     
     rospy.init_node('robot_loc_controller')
     rate = rospy.Rate(100) # 10hz
