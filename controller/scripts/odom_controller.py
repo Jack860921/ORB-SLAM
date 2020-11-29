@@ -5,6 +5,8 @@ from geometry_msgs.msg import PoseStamped
 from geometry_msgs.msg import Twist 
 from nav_msgs.msg import Odometry
 pub = rospy.Publisher('/cmd_vel', Twist, queue_size=10)
+pub_Angle = rospy.Publisher('/Angle', Twist, queue_size=10)
+# pub_GoalAngle = rospy.Publisher('/GoalAngle', Twist, queue_size=10)
 # initialize pose
 x = 0.0
 y = 0.0
@@ -32,9 +34,11 @@ Stop.linear.x = 0
 Stop.angular.z = 0
 VelLimit = 0.2
 phase_flag = 0
+
 x_0 = 0
 y_0 = 0
 first_flag = 0
+# def Shortest_Ang():
 
 def Pose_callback(Odometry):
     global x
@@ -50,7 +54,6 @@ def Pose_callback(Odometry):
 
     x = Odometry.pose.pose.position.x - x_0
     y = Odometry.pose.pose.position.y - y_0
-    # print("Now is at: ", x, y)
 
 def imu_callback(orientation):
     global yaw_angle
@@ -74,6 +77,14 @@ def control_command(point_index):
     rho = math.sqrt(delta_x**2 + delta_y**2)
     goal_angle = math.atan2(delta_y, delta_x)*180/math.pi
     alpha = -theta + goal_angle
+
+    Angle = Twist()
+    Angle.linear.x = goal_angle
+    Angle.linear.y = alpha
+    Angle.linear.z = rho
+    global pub_Angle
+    pub_Angle.publish(Angle)
+
     # beta = goal_theta[point_index] -theta - alpha
     if abs(alpha) > abs(alpha + 360):
         alpha = alpha + 360
@@ -81,12 +92,12 @@ def control_command(point_index):
         alpha = alpha - 360
     else:
         pass
-    print("X: %f, Y: %f, Yaw: %f" %(x, y, theta))
+    print("X: %f, Y: %f, Yaw Angle: %f" %(x, y, theta))
 
     # print("atan2(delta_y, delta_x)", math.atan2(delta_y, delta_x)*180/math.pi)
     # print("theta", theta)
     # print("alpha", alpha)
-    Alpha = alpha
+    # Alpha = alpha
     alpha = alpha * math.pi/180
     # beta = beta * math.pi/180
     global phase_flag
@@ -98,11 +109,11 @@ def control_command(point_index):
     # else:
     #     print("Phase 1")
     #     phase_flag = 1
-    vel_x = math.cos(alpha) * k_rho * rho
-    vel.linear.x = vel_limit(vel_x)
-    # print("vel.linear.x", vel.linear.x)
+    vel_x = k_rho * rho
+    vel_x = vel_limit(vel_x)
+    vel_x = math.cos(alpha) * vel_x
+    vel.linear.x = vel_x
     vel.angular.z = k_alpha * alpha
-
 
     global pub
     pub.publish(vel)
@@ -117,7 +128,7 @@ def start():
     rospy.Subscriber("/odom", Odometry, Pose_callback)
     rospy.Subscriber("/yaw_odom", PoseStamped, imu_callback)
     
-    rospy.init_node('robot_loc_controller')
+    rospy.init_node('odom_controller')
     rate = rospy.Rate(100) # 10hz
     point_index = 0
     goal_flag = 0

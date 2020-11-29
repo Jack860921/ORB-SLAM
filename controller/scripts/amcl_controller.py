@@ -6,6 +6,7 @@ from geometry_msgs.msg import Twist
 from nav_msgs.msg import Odometry
 from geometry_msgs.msg import PoseWithCovarianceStamped
 pub = rospy.Publisher('/cmd_vel', Twist, queue_size=10)
+pub_Angle = rospy.Publisher('/Angle', Twist, queue_size=10)
 # initialize pose
 x = 0.0
 y = 0.0
@@ -31,7 +32,7 @@ Ang_tolerance = 1.0
 Stop = Twist()
 Stop.linear.x = 0
 Stop.angular.z = 0
-VelLimit = 0.2
+VelLimit = 0.15
 phase_flag = 0
 
 # def Shortest_Ang():
@@ -65,6 +66,13 @@ def control_command(point_index):
     rho = math.sqrt(delta_x**2 + delta_y**2)
     goal_angle = math.atan2(delta_y, delta_x)*180/math.pi
     alpha = -theta + goal_angle
+
+    Angle = Twist()
+    Angle.linear.x = goal_angle
+    Angle.linear.y = alpha
+    global pub_Angle
+    pub_Angle.publish(Angle)
+
     # beta = goal_theta[point_index] -theta - alpha
     if abs(alpha) > abs(alpha + 360):
         alpha = alpha + 360
@@ -76,7 +84,7 @@ def control_command(point_index):
 
     # print("atan2(delta_y, delta_x)", math.atan2(delta_y, delta_x)*180/math.pi)
     # print("theta", theta)
-    # print("alpha", alpha)
+    print("alpha", alpha)
     # Alpha = alpha
     alpha = alpha * math.pi/180
     # beta = beta * math.pi/180
@@ -91,9 +99,8 @@ def control_command(point_index):
     #     phase_flag = 1
     vel_x = math.cos(alpha) * k_rho * rho
     vel.linear.x = vel_limit(vel_x)
-    print("vel.linear.x", vel.linear.x)
+    # print("vel.linear.x", vel.linear.x)
     vel.angular.z = k_alpha * alpha
-
 
     global pub
     pub.publish(vel)
