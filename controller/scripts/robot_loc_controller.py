@@ -5,6 +5,8 @@ from geometry_msgs.msg import PoseStamped
 from geometry_msgs.msg import Twist 
 from nav_msgs.msg import Odometry
 pub = rospy.Publisher('/cmd_vel', Twist, queue_size=10)
+pub_Angle = rospy.Publisher('/Angle', Twist, queue_size=10)
+# pub_GoalAngle = rospy.Publisher('/GoalAngle', Twist, queue_size=10)
 # initialize pose
 x = 0.0
 y = 0.0
@@ -14,15 +16,15 @@ Ang_Dif = 10.0
 # parameters
 # goal_x = [1.0, 0.0, 1.0, 0.0]
 # goal_y = [0.0, 1.0, 0.0, 1.0]
-goal_x = [0.5, 3.5, 3.5, 0.5]
-goal_x = goal_x + goal_x + goal_x
-goal_x.append(0.5)
-goal_y = [-1.0, -1.0, 2.0, 2.0]
-goal_y = goal_y + goal_y + goal_y
-goal_y.append(-1.0)
+goal_x = [0.0, 4.0, 4.0, 0.0]
+# goal_x = goal_x + goal_x + goal_x
+goal_x.append(0.0)
+goal_y = [1.0, 1.0, -1.0, -1.0]
+# goal_y = goal_y + goal_y + goal_y
+goal_y.append(1.0)
 goal_theta = [0, 180, 0, -180]
 k_rho = 0.2
-k_alpha = 1.5 #1.0
+k_alpha = 0.5 #1.0
 k_beta = -0.3
 Dist_tolerance = 0.05
 Ang_tolerance = 1.0
@@ -30,7 +32,7 @@ Ang_tolerance = 1.0
 Stop = Twist()
 Stop.linear.x = 0
 Stop.angular.z = 0
-VelLimit = 0.2
+VelLimit = 0.1
 phase_flag = 0
 
 # def Shortest_Ang():
@@ -64,6 +66,14 @@ def control_command(point_index):
     rho = math.sqrt(delta_x**2 + delta_y**2)
     goal_angle = math.atan2(delta_y, delta_x)*180/math.pi
     alpha = -theta + goal_angle
+
+    Angle = Twist()
+    Angle.linear.x = goal_angle
+    Angle.linear.y = alpha
+    Angle.linear.z = rho
+    global pub_Angle
+    pub_Angle.publish(Angle)
+
     # beta = goal_theta[point_index] -theta - alpha
     if abs(alpha) > abs(alpha + 360):
         alpha = alpha + 360
@@ -71,12 +81,12 @@ def control_command(point_index):
         alpha = alpha - 360
     else:
         pass
-    # print("X: %f, Y: %f, Yaw: %f" %(x, y, theta))
+    print("X: %f, Y: %f, Yaw Angle: %f" %(x, y, theta))
 
-    print("atan2(delta_y, delta_x)", math.atan2(delta_y, delta_x)*180/math.pi)
-    print("theta", theta)
-    print("alpha", alpha)
-    Alpha = alpha
+    # print("atan2(delta_y, delta_x)", math.atan2(delta_y, delta_x)*180/math.pi)
+    # print("theta", theta)
+    # print("alpha", alpha)
+    # Alpha = alpha
     alpha = alpha * math.pi/180
     # beta = beta * math.pi/180
     global phase_flag
@@ -88,11 +98,11 @@ def control_command(point_index):
     # else:
     #     print("Phase 1")
     #     phase_flag = 1
-    vel_x = math.cos(alpha) * k_rho * rho
-    vel.linear.x = vel_limit(vel_x)
-    print("vel.linear.x", vel.linear.x)
+    vel_x = k_rho * rho
+    vel_x = vel_limit(vel_x)
+    vel_x = math.cos(alpha) * vel_x
+    vel.linear.x = vel_x
     vel.angular.z = k_alpha * alpha
-
 
     global pub
     pub.publish(vel)
