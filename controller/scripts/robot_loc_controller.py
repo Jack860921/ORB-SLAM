@@ -16,15 +16,15 @@ Ang_Dif = 10.0
 # parameters
 # goal_x = [1.0, 0.0, 1.0, 0.0]
 # goal_y = [0.0, 1.0, 0.0, 1.0]
-goal_x = [0.0, 4.0, 4.0, 0.0]
-# goal_x = goal_x + goal_x + goal_x
-goal_x.append(0.0)
-goal_y = [1.0, 1.0, -1.0, -1.0]
-# goal_y = goal_y + goal_y + goal_y
-goal_y.append(1.0)
+goal_x = [0.5, 3.5, 3.5, 0.5]
+goal_x = goal_x + goal_x + goal_x
+goal_x.append(0.5)
+goal_y = [-1.0, -1.0, 2.0, 2.0]
+goal_y = goal_y + goal_y + goal_y
+goal_y.append(-1.0)
 goal_theta = [0, 180, 0, -180]
 k_rho = 0.2
-k_alpha = 0.5 #1.0
+k_alpha = 1.5 #1.0
 k_beta = -0.3
 Dist_tolerance = 0.05
 Ang_tolerance = 1.0
@@ -32,7 +32,7 @@ Ang_tolerance = 1.0
 Stop = Twist()
 Stop.linear.x = 0
 Stop.angular.z = 0
-VelLimit = 0.1
+VelLimit = 0.2
 phase_flag = 0
 
 # def Shortest_Ang():

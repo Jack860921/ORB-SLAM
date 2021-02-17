@@ -28,9 +28,5 @@
           args="-d $(find turtlebot3_navigation)/rviz/turtlebot3_navigation_robot_localization.rviz"/>
   </group>
   <node pkg="convert_orientation" type="qt_amcl" name="qt_amcl" />
-<<<<<<< HEAD
-  <include file="$(find turtlebot3_teleop)/launch/turtlebot3_teleop_key.launch"/>
-=======
   <!--include file="$(find turtlebot3_teleop)/launch/turtlebot3_teleop_key.launch"/-->
->>>>>>> e7fa72c231de8fa174b406d69941fc974d4e9819
 </launch>
